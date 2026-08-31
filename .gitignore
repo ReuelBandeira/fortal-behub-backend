@@ -1,0 +1,81 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Diretórios de ambiente virtual
+.venv/
+venv/
+env/
+ENV/
+.venv/
+venv.bak/
+
+# Arquivos de configuração do Jupyter Notebook
+.ipynb_checkpoints
+
+# Cache do projeto
+.pytest_cache/
+.cache/
+
+# Cache do pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Logs e arquivos temporários
+*.log
+*.pot
+*.pyo
+*.pyd
+*.pid
+*.seed
+*.cover
+*.orig
+*.bak
+*.swp
+*.tmp
+*.temp
+*.old
+
+# Configurações de IDEs e editores
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Arquivos de log
+logs/
+*.log
+
+# Dados de cobertura de testes
+htmlcov/
+.coverage
+.coverage.*
+
+# Arquivos de build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Arquivos criados pelo MyPy
+.mypy_cache/
+
+# Arquivos do PyInstaller
+*.spec
+
+# Arquivos do Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Arquivos de deployment
+*.env
+.env.*
+
+# Django stuff
+*.sqlite3
+media/
+staticfiles/
+db.sqlite3
+
+# Outros arquivos que você quer ignorar
+*.DS_Store

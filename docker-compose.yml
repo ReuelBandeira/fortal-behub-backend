@@ -1,0 +1,97 @@
+version: "3.7"
+
+networks:
+  beehub-network:
+    driver: bridge
+
+services:
+  beehub-db:
+    image: postgres:13
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - beehub-network
+    environment:
+      POSTGRES_USER: beehubuser
+      POSTGRES_PASSWORD: beehubpassword
+      POSTGRES_DB: beehub
+    volumes:
+      - beehub-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beehubuser -d beehub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  beehub-migrations:
+    build: .
+    networks:
+      - beehub-network
+    environment:
+      - DATABASE_URL=postgresql://beehubuser:beehubpassword@beehub-db:5432/beehub
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=HS256
+    depends_on:
+      beehub-db:
+        condition: service_healthy
+    command: bash -c "echo '🗄️ Executando migrações...' && alembic upgrade head && echo '✅ Migrações concluídas!'"
+    restart: "no"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    command: start-dev
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - beehub-network
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+
+  keycloak-setup:
+    build: .
+    networks:
+      - beehub-network
+    depends_on:
+      - keycloak
+    command: bash -c "sleep 30 && echo '🔧 Configurando Keycloak...' && python scripts/setup-keycloak.py && echo '✅ Keycloak configurado!'"
+    restart: "no"
+
+  beehub-api:
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - beehub-network
+    environment:
+      - DATABASE_URL=postgresql://beehubuser:beehubpassword@beehub-db:5432/beehub
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=HS256
+      - KEYCLOAK_SERVER_URL=http://keycloak:8080
+      - KEYCLOAK_REALM_NAME=beehub-realm
+      - KEYCLOAK_CLIENT_ID=beehub-client
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - EMAIL_SENDER=noreply@irede.org.br
+      - EMAIL_CLIENT_ID=${EMAIL_CLIENT_ID}
+      - EMAIL_CLIENT_SECRET=${EMAIL_CLIENT_SECRET}
+      - EMAIL_TENANT_ID=${EMAIL_TENANT_ID}
+    depends_on:
+      beehub-db:
+        condition: service_healthy
+      beehub-migrations:
+        condition: service_completed_successfully
+      keycloak-setup:
+        condition: service_completed_successfully
+    command: bash -c "echo '🚀 Iniciando aplicação...' && python -m uvicorn src.main:app --host 0.0.0.0 --port 3000"
+
+volumes:
+  beehub-db-data:
+  keycloak_data:
